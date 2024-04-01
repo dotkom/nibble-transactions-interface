@@ -1,3 +1,6 @@
+token.json
+credentials.json
+state
 # Local .terraform directories
 **/.terraform/*
 
