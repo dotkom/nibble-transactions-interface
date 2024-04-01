@@ -1,0 +1,37 @@
+{
+  "id": "18e9aa5d1620ea2c",
+  "threadId": "18e9aa5d1620ea2c",
+  "labelIds": [
+    "Label_9078698767601090326",
+    "IMPORTANT",
+    "CATEGORY_PERSONAL",
+    "INBOX"
+  ],
+  "snippet": "Hei Online",
+  "payload": {
+    "partId": "",
+    "mimeType": "multipart/alternative",
+    "filename": "",
+    "headers": [
+      { "name": "Delivered-To", "value": "henrikskog01@gmail.com" },
+      {
+        "name": "From",
+        "value": "Fredrik Carsten Hansteen <fredrik.carsten.hansteen@online.ntnu.no>"
+      },
+      { "name": "Date", "value": "Mon, 1 Apr 2024 19:11:44 +0200" },
+      {
+        "name": "Message-ID",
+        "value": "<CALBvNgo7GQ3qM2etq73niLanT3aOOED5sxpR_yGEBX2ZGpdJzQ@mail.gmail.com>"
+      },
+      { "name": "Subject", "value": "TidypayGO kundeordre 15644" },
+      { "name": "To", "value": "Henrik Skog <henrikskog01@gmail.com>" },
+      {
+        "name": "Content-Type",
+        "value": "multipart/alternative; boundary=\"00000000000097e11206150c17ab\""
+      }
+    ]
+  },
+  "historyId": "2111012",
+  "internalDate": "1711991504000",
+  "email_body": "Hei Online Linjeforeningen for Informatikk,\r\n\r\nDet har kommet inn en ny ordre via TidypayGO - her er detaljene:\r\n\r\n\r\nOrdrenummer:    15644\r\nFakturanummer:  16270\r\nDato og tid:    2024-03-26 14:36:40\r\n\r\n\r\nKunde:  \u00c5dne B\u00f8rresen ( adne_2000@hotmail.com  / 4791103600 )\r\n\r\n\r\n        2 stk Kj\u00e6rlighet p\u00e5 pinne \u00e1 kr 4.00 = kr 8.00\r\n\r\nSum ordre ink MVA kr 8.00\r\nHerav MVA kr 0.00\r\n\r\nDenne e-posten er sendt fra Tidypay (tidypay.no).\r\n"
+}
