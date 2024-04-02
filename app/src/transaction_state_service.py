@@ -43,3 +43,4 @@ class TransactionStateService:
             history_id_file.write(history_id)
 
         return self.get_last_processed_history_id()
+

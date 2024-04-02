@@ -1,4 +1,8 @@
 import os
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -36,44 +40,63 @@ class GmailService:
         history = self.gmail.users().history().list(userId='me', startHistoryId=start_id, historyTypes='messageAdded').execute()
         return history 
 
-    def initial_gmail_sync(self):
+    def initial_gmail_sync(self, max_results=10):
         pageToken = None
         messages_left = True
         messages = []
 
+        email_ids = []
+
         # Get messages
         while messages_left:
-            messages = self.gmail.users().messages().list(userId="me", pageToken=pageToken, q="label:tidypay-order").execute()
-            # messages = self.gmail.users().messages().list(userId="me", pageToken=pageToken, labelIds=['tidypay-order']).execute()
-            pageToken = messages.get('nextPageToken')
-            # do something with the messages! Importing them to your database for example
+            resp = self.gmail.users().messages().list(userId="me", pageToken=pageToken, q="label:tidypay-order").execute()
 
-            result = []
-            for message in messages.get('messages', []):
-                email_id = message['id']
-                msg = self.get_message(email_id)
+            pageToken = resp.get('nextPageToken')
+            messages = resp.get('messages', [])
 
-                result.append(msg)
+            print("RAW MESSAGES", messages)
+
+            email_ids.extend([message['id'] for message in messages])
 
             if not pageToken:
                 messages_left = False
+
+
+        # only fetch last 'max_results' emails
+        # >>> test = [1, 2, 3, 4, 5]
+        # >>> test[-2:]
+        # [4, 5]
+        result = []
+        for email_id in email_ids[-max_results:]:
+            msg = self.get_message(email_id)
+            result.append(msg)
                 
         return result
                 
+    def decode_email_body_text_plain(self, msg):
+        return base64.urlsafe_b64decode(msg["payload"]["body"]["data"]).decode("utf-8")
 
-    def decode_email_body(self, msg):
+    def decode_email_body_multipart(self, msg):
         for p in msg["payload"]["parts"]:
             if p["mimeType"] in ["text/plain", "text/html"]:
                 data = base64.urlsafe_b64decode(p["body"]["data"]).decode("utf-8")
                 return data
 
     def get_message(self, message_id):
-        message = self.gmail.users().messages().get(userId='me', id=message_id).execute()
-        body = self.decode_email_body(message)
+        message = self.gmail.users().messages().get(userId='me', id=message_id, format="full").execute()
+        
+        if "payload" not in message:
+            raise ValueError("Payload not found in message")
+        
+        if message['payload']['mimeType'] == "text/plain":
+            body = self.decode_email_body_text_plain(message)
+        else:
+            body = self.decode_email_body_multipart(message)
 
         return {**message, **{"email_body": body}}
 
     def parse_mail(self, data) -> Email:
+        print("parsing mail: ", data)
         # Initialize an empty dictionary to hold the extracted information
         extracted_info = {}
 
@@ -103,63 +126,21 @@ class GmailService:
         if not "email_body" in data:
             raise ValueError("Email body not found")
 
+        # check if any of the required keys are missing
+        if not extracted_info['Date'] or not extracted_info['From'] or not extracted_info['To'] or not extracted_info['Subject'] or not data["email_body"]:
+            raise ValueError("Missing required fields in email")
+
+        if not "TidypayGO kundeordre" in extracted_info['Subject']:
+            raise ValueError(f"Email with subject {extracted_info['Subject']} is not a TidypayGO order email, missing 'TidypayGO kundeordre' in subject")
+
+        if not 'historyId' in data:
+            raise ValueError("Missing historyId")
+
         return Email(
             date=extracted_info['Date'],
             reciever=extracted_info['To'],
             sender=extracted_info['From'],
             subject=extracted_info['Subject'],
             body=data["email_body"],
+            history_id=data['historyId']
         )
-
-# def parse_mail(data) -> Email:
-#     # Initialize an empty dictionary to hold the extracted information
-#     extracted_info = {}
-
-#     # Extracting the 'headers' section from the email data
-#     headers = data.get('payload', {}).get('headers', [])
-    
-#     # Define the keys of interest and ensure each is found
-#     keys_of_interest = ['Date', 'From', 'To', 'Subject']
-#     found_keys = {key: False for key in keys_of_interest}
-
-#     # Loop through each header and extract information if the header name is in our keys of interest
-#     for header in headers:
-#         if header.get('name') in keys_of_interest:
-#             extracted_info[header.get('name')] = header.get('value')
-#             found_keys[header.get('name')] = True
-
-#     # Check if all required keys were found
-#     if not all(found_keys.values()):
-#         raise ValueError(f"Missing keys: {found_keys}")
-
-#     snippet = data.get('snippet')
-#     if snippet is None:
-#         raise ValueError("Snippet not found")
-
-#     extracted_info['Snippet'] = snippet
-
-#     return Email(
-#         date=extracted_info['Date'],
-#         reciever=extracted_info['To'],
-#         sender=extracted_info['From'],
-#         subject=extracted_info['Subject'],
-#         snippet=extracted_info['Snippet']
-#     )
-
-
-
-# def get_history(startId):
-#     try:
-#         messages = gmail.users().history().list(userId='me', startHistoryId=startId, historyTypes='messageAdded').execute()
-#         return messages 
-#     except Exception as e:
-#         print(e)
-#         return None
-
-# def get_message(message_id):
-#     try:
-#         message = gmail.users().messages().get(userId='me', id=message_id).execute()
-#         return message
-#     except Exception as e:
-#         print(e)
-#         return None

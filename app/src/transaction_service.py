@@ -10,10 +10,10 @@ import re
 import traceback
 
 class TransactionService:
-    def __init__(self, gmail_service: GmailService, state_service: TransactionStateService):
+    def __init__(self, gmail_service: GmailService, state_service: TransactionStateService, max_saved_limit: int = 10):
         self.gmail_service = gmail_service
         self.state_service = state_service
-        self.max_saved_limit = 10
+        self.max_saved_limit = max_saved_limit
 
     def add_transactions(self, incoming: list[Transaction], max_saved_limit: int) -> list[Transaction]:
         transactions = self.state_service.get_transaction_list()
@@ -44,6 +44,7 @@ class TransactionService:
         return res
 
     def extract_email_info(self, email: Email) -> Transaction:
+        print("Extracting email info", email)
         order_number = re.search(r'Ordrenummer:\s+(\d+)', email.body).group(1)
         invoice_number = re.search(r'Fakturanummer:\s+(\d+)', email.body).group(1)
         datetime = re.search(r'Dato og tid:\s+([-\d:\s]+)', email.body).group(1)
@@ -51,7 +52,7 @@ class TransactionService:
         name, email_addr = name_email_match.group(1), name_email_match.group(2)
         amount = int(float(re.search(r'Sum ordre ink MVA kr\s+(\d+.\d+)', email.body).group(1)))
         product_description = re.search(r'(\d+ stk [^\=]+=\s+kr\s+\d+.\d+)', email.body).group(1)
-        return Transaction(order_number=order_number, name=name, email=email_addr, amount=amount, datetime=datetime, transaction_description=product_description, invoice_number=invoice_number)
+        return Transaction(order_number=order_number, name=name, email=email_addr, amount=amount, datetime=datetime, transaction_description=product_description, invoice_number=invoice_number, history_id=email.history_id)
 
     def fetch_detailed_emails(self, added_emails) -> list[dict]:
         emails = []
@@ -73,15 +74,13 @@ class TransactionService:
                 print(traceback.format_exc())
                 continue
 
-            if not "TidypayGO kundeordre" in email.subject:
-                print(f"Email with subject {email.subject} is not a TidypayGO order email")
-                continue
 
             emails.append(email)
 
         return emails
 
     def get_parsed_emails(self, unprocessed_history):
+        print("Unprocessed history", unprocessed_history)
         if 'history' not in unprocessed_history:
             raw_added_emails = [] # No new emails
         else:
@@ -104,9 +103,17 @@ class TransactionService:
         unprocessed_history = self.gmail_service.get_history(last_processed_history_id)
 
         print("Unprocessed history", unprocessed_history)
-        emails = self.get_parsed_emails(unprocessed_history)
-        print("emails", emails)
+        parsed_emails = self.get_parsed_emails(unprocessed_history)
+        print("emails", parsed_emails)
 
+        transactions = self.extract_emails(parsed_emails)
+        updated_transactions = self.add_transactions(transactions, self.max_saved_limit)
+
+        self.state_service.set_last_processed_history_id(new_history_id)
+
+        return updated_transactions
+
+    def extract_emails(self, emails: list[Email]) -> list[Transaction]:
         transactions = []
         for email in emails:
             try:
@@ -116,41 +123,44 @@ class TransactionService:
                 print(f"Failed to extract email info from email {email}")
                 print(traceback.format_exc())
                 continue
-        updated_transactions = self.add_transactions(transactions, self.max_saved_limit)
-
-        self.state_service.set_last_processed_history_id(new_history_id)
-
-        return updated_transactions
+        return transactions
 
     def full_sync(self):
-        detailed_emails = self.gmail_service.initial_gmail_sync()
+        detailed_emails = self.gmail_service.initial_gmail_sync(max_results=self.max_saved_limit)
         print(f"Initial sync found {len(detailed_emails)} emails")
         parsed_emails = list(map(lambda email: self.gmail_service.parse_mail(email), detailed_emails))
         print(f"Initial sync parsed {len(parsed_emails)} emails")
-        transactions = list(map(lambda email: self.extract_email_info(email), parsed_emails))
-        print(f"Initial sync extracted {len(transactions)} transactions")
-        updated_transactions = self.add_transactions(transactions, self.max_saved_limit)
-        print(f"Initial sync updated {len(updated_transactions)} transactions")
+        transactions = self.extract_emails(parsed_emails)
+        print(f"Initial sync extracted {len(transactions)} transactions from emails")
 
-        self.state_service.set_last_processed_history_id(detailed_emails[0]['historyId'])
+        # clear out existing transactions
+        self.state_service.set_transaction_list([])
+
+        updated_transactions = self.add_transactions(transactions, self.max_saved_limit)
+        print(f"Initial sync updated {len(updated_transactions)} transactions from file")
+
+        self.state_service.set_last_processed_history_id(updated_transactions[-1].history_id)
 
         return updated_transactions
 
 
-# if __name__ == '__main__':
-#     import os
-#     dirname = os.path.dirname(__file__)
-#     gmail_service = GmailService()
-#     transactions_file = os.path.join(dirname, "test_transactions.json")
-#     history_id_file = os.path.join(dirname, "test_history_id.json")
+if __name__ == '__main__':
+    import os
+    dirname = os.path.dirname(__file__)
+    gmail_service = GmailService()
+    transactions_file = os.path.join(dirname, "transactions.json")
+    history_id_file = os.path.join(dirname, "history_id.txt")
 
-#     state_service = TransactionStateService(transactions_file=transactions_file, history_id_file=history_id_file)
+    state_service = TransactionStateService(transactions_file=transactions_file, history_id_file=history_id_file)
 
-#     transaction_service = TransactionService(gmail_service, state_service)
+    transaction_service = TransactionService(gmail_service, state_service, max_saved_limit=10)
 
-#     detailed_emails = gmail_service.initial_gmail_sync()
-#     parsed_emails = list(map(lambda email: gmail_service.parse_mail(email), detailed_emails))
-#     transactions = list(map(lambda email: transaction_service.extract_email_info(email), parsed_emails))
-#     updated_transactions = transaction_service.add_transactions(transactions, transaction_service.max_saved_limit)
+    # detailed_emails = gmail_service.initial_gmail_sync()
+    # parsed_emails = list(map(lambda email: gmail_service.parse_mail(email), detailed_emails))
+    # transactions = list(map(lambda email: transaction_service.extract_email_info(email), parsed_emails))
+    # updated_transactions = transaction_service.add_transactions(transactions, transaction_service.max_saved_limit)
 
-#     transaction_service.state_service.set_last_processed_history_id(detailed_emails[0]['historyId'])
+    # transaction_service.state_service.set_last_processed_history_id(detailed_emails[0]['historyId'])
+
+    updated = transaction_service.full_sync()
+    print(updated)

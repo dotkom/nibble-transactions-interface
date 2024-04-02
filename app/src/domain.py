@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 
 @dataclass
 class Transaction:
@@ -8,8 +8,8 @@ class Transaction:
     amount: int
     datetime: str
     transaction_description: str
-    invoice_number: str = None
-
+    invoice_number: str
+    history_id: str
 
 @dataclass
 class Email:
@@ -18,3 +18,5 @@ class Email:
     sender: str
     subject: str
     body: str
+    history_id: str
+

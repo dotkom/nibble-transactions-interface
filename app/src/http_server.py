@@ -16,7 +16,7 @@ import traceback
 from dotenv import load_dotenv
 load_dotenv()
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder=os.path.dirname(__file__))
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 
@@ -40,13 +40,16 @@ state_service = TransactionStateService(
 
 transaction_service = TransactionService(gmail_service, state_service)
 
+def emit_update(transactions):
+    transactions = [transaction.__dict__ for transaction in transactions]
+    socketio.emit('update', {'payload': transactions}, namespace='/test')
+
 @app.route('/pubsub/push', methods=['POST'])
 def pubsub_push():
     try:
-        history_id = pubsub_service.get_history_id(request)
-        print(history_id)
-        updated = transaction_service.handle_gmail_push(history_id)
-        print(updated)
+        incoming_history_id = pubsub_service.get_history_id(request)
+        updated = transaction_service.handle_gmail_push(incoming_history_id)
+        emit_update(updated)
     except Exception as e:
         print(traceback.format_exc())
         print("Returning 200 to prevent redelivery", e)
@@ -54,9 +57,9 @@ def pubsub_push():
     # Acknowledge the message to prevent redelivery
     return jsonify(success=True)
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+@app.route('/admin')
+def admin():
+    return render_template("admin.html")
 
 @socketio.on('connect', namespace='/test')
 def test_connect():
@@ -65,6 +68,17 @@ def test_connect():
 @socketio.on('disconnect', namespace='/test')
 def test_disconnect():
     print('Client disconnected')
+
+@socketio.on('fullsync', namespace='/test')
+def full_sync():
+    print("Full sync requested")
+    updated = transaction_service.full_sync()
+    emit_update(updated)
+
+@app.route('/')
+def index():
+    transactions = state_service.get_transaction_list()
+    return render_template("index.html", transactions=transactions)
 
 if __name__ == '__main__':
     socketio.run(app, debug=True, port=8080)

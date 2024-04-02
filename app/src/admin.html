@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recent Transactions</title>
+    <style>
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <button onclick="fullsync()" id="fullsync">Full sync</button>
+
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script>
+        const socket = io.connect('http://localhost:8080/test');
+
+        socket.on('connect', function() {
+            console.log('Connected to the server!');
+        });
+
+        function fullsync() {
+            socket.emit('fullsync');
+        }
+
+        socket.on('disconnect', function() {
+            console.log('Disconnected from the server.');
+        });
+    </script>
+</body>
+</html>
