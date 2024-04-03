@@ -30,7 +30,7 @@
             <tr>
                 <td>{{ transaction.datetime }}</td>
                 <td>{{ transaction.name }}</td>
-                <td>{{ transaction.transaction_description }}</td>
+                <td>{{ '\n'.join(transaction.transaction_description) }}</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -56,9 +56,13 @@
                 const row = tableBody.insertRow();
                 const fields = ['datetime', 'name', 'transaction_description'];
                 fields.forEach(field => {
-                    const cell = row.insertCell();
-                    cell.textContent = transaction[field] ? transaction[field] : '';
-                });
+                        const cell = row.insertCell();
+                        if (Array.isArray(transaction[field])) {
+                            cell.textContent = transaction[field].join("\n");
+                            return;
+                        }
+                        cell.textContent = transaction[field] || "";
+                    });
             });
         });
 

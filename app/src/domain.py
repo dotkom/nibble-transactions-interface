@@ -7,7 +7,7 @@ class Transaction:
     email: str
     amount: int
     datetime: str
-    transaction_description: str
+    transaction_description: list[str]
     invoice_number: str
     history_id: str
     email_id: str

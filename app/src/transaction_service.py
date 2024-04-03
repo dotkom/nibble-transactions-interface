@@ -60,8 +60,8 @@ class TransactionService:
         name_email_match = re.search(r'Kunde:\s+(.*?)\s+\(\s*(.*?)\s*/', email.body)
         name, email_addr = name_email_match.group(1), name_email_match.group(2)
         amount = int(float(re.search(r'Sum ordre ink MVA kr\s+(\d+.\d+)', email.body).group(1)))
-        product_description = re.search(r'(\d+ stk [^\=]+=\s+kr\s+\d+.\d+)', email.body).group(1)
-        return Transaction(order_number=order_number, name=name, email=email_addr, amount=amount, datetime=datetime, transaction_description=product_description, invoice_number=invoice_number, history_id=email.history_id, email_id=email.email_id)
+        transaction_description = re.findall(r'(\d+ stk [^\=]+=\s+kr\s+\d+.\d+)', email.body).group(1)
+        return Transaction(order_number=order_number, name=name, email=email_addr, amount=amount, datetime=datetime, transaction_description=transaction_description, invoice_number=invoice_number, history_id=email.history_id, email_id=email.email_id)
 
     def fetch_detailed_emails(self, added_emails) -> list[dict]:
         emails = []
