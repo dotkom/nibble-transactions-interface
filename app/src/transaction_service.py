@@ -72,7 +72,6 @@ class TransactionService:
                 print(f"Message {id} fetched", message)
                 emails.append(message)
             except Exception as e:
-                print(f"Failed to fetch email {id}")
                 print(traceback.format_exc())
                 # write email to file with email name
                 with open(f"email_{id}.json", "w") as f:

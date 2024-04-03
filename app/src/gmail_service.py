@@ -75,10 +75,10 @@ class GmailService:
                 
         return result
                 
-    def decode_email_body_text_plain(self, msg):
+    def decode_email_body_body(self, msg):
         return base64.urlsafe_b64decode(msg["payload"]["body"]["data"]).decode("utf-8")
 
-    def decode_email_body_multipart(self, msg):
+    def decode_email_body_parts(self, msg):
         for p in msg["payload"]["parts"]:
             if p["mimeType"] in ["text/plain", "text/html"]:
                 data = base64.urlsafe_b64decode(p["body"]["data"]).decode("utf-8")
@@ -90,10 +90,13 @@ class GmailService:
         if "payload" not in message:
             raise ValueError("Payload not found in message")
         
-        body = self.decode_email_body_text_plain(message)
-        # if message['payload']['mimeType'] == "text/plain":
-        # else:
-        #     body = self.decode_email_body_multipart(message)
+        # check if payload parts are present
+        if "parts" in message["payload"]:
+            body = self.decode_email_body_parts(message)
+        elif "body" in message["payload"] and "data" in message["payload"]["body"]:
+            body = self.decode_email_body_body(message)
+        else:
+            raise ValueError("No body found in email")
 
         return {**message, **{"email_body": body}}
 
