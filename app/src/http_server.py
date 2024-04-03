@@ -47,7 +47,8 @@ transaction_service = TransactionService(
 
 def emit_update(transactions: list[Transaction]):
     transactions = [transaction.__dict__ for transaction in transactions]
-    socketio.emit('update', {'payload': transactions}, namespace='/test')
+    # Return in reverse order to show newest first
+    socketio.emit('update', {'payload': transactions[::-1]}, namespace='/test')
 
 @app.route('/pubsub/push', methods=['POST'])
 def pubsub_push():
@@ -84,7 +85,7 @@ def full_sync():
 @app.route('/')
 def index():
     transactions = state_service.get_transaction_list()
-    return render_template("index.html", transactions=transactions)
+    return render_template("index.html", transactions=transactions[::-1])
 
 if __name__ == '__main__':
     socketio.run(app, debug=True, port=8080)

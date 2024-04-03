@@ -51,10 +51,6 @@
             // Clear the table body
             tableBody.innerHTML = '';
 
-            // Reverse the transactions array to show the most recent transactions first
-            transactions.reverse();
-
-
             // Append each transaction as a new row in the table
             transactions.forEach(transaction => {
                 const row = tableBody.insertRow();
