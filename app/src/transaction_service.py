@@ -29,7 +29,8 @@ class TransactionService:
                 print(f"Transaction with id {transaction.order_number} already exists \n {transaction.name}-{transaction.transaction_description}-{transaction.datetime} not added")
                 continue
 
-            transactions.append(transaction)
+            # prepend
+            transactions.insert(0, transaction)
             added_transactions = True
 
         transactions = transactions[-max_saved_limit:]
