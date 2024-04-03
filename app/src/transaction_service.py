@@ -29,8 +29,7 @@ class TransactionService:
                 print(f"Transaction with id {transaction.order_number} already exists \n {transaction.name}-{transaction.transaction_description}-{transaction.datetime} not added")
                 continue
 
-            # prepend
-            transactions.insert(0, transaction)
+            transactions.append(transaction)
             added_transactions = True
 
         transactions = transactions[-max_saved_limit:]
@@ -156,7 +155,7 @@ class TransactionService:
         updated_transactions = self.add_transactions(transactions, self.max_saved_limit)
         print(f"Initial sync updated {len(updated_transactions)} transactions from file")
 
-        self.state_service.set_last_processed_history_id(updated_transactions[0].history_id)
+        self.state_service.set_last_processed_history_id(updated_transactions[-1].history_id)
 
         return updated_transactions
 
