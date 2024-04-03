@@ -33,15 +33,15 @@ class GmailService:
         else:
             self.gmail = gmail_client
 
-    def get_partial_history(self, start_id):
-        history = self.gmail.users().history().list(userId='me', startHistoryId=start_id, historyTypes='messageAdded').execute()
-
-        return history
-
     def get_history(self, start_id):
-        history = self.gmail.users().history().list(userId='me', startHistoryId=start_id, historyTypes='messageAdded').execute()
-        return history 
+        response = self.gmail.users().history().list(userId='me', startHistoryId=start_id, historyTypes='messageAdded', labelId="Label_661192541137989669").execute()
 
+        if 'history' not in response:
+            return []
+        else:
+            return response['history']
+
+    # Returns a list of emails with label 'tidypay-order' sorted from oldest to newest
     def initial_gmail_sync(self, max_results):
         pageToken = None
         messages_left = True
@@ -63,13 +63,18 @@ class GmailService:
             if not pageToken:
                 messages_left = False
 
+        print("IDS", email_ids)
+
+        # flip the list so that the oldest emails are first and only keep the last 'max_results' emails
+
+        email_ids = email_ids[::-1][-max_results:]
 
         # only fetch last 'max_results' emails
         # >>> test = [1, 2, 3, 4, 5]
         # >>> test[-2:]
         # [4, 5]
         result = []
-        for email_id in email_ids[-max_results:]:
+        for email_id in email_ids:
             msg = self.get_message(email_id)
             result.append(msg)
                 
@@ -147,5 +152,6 @@ class GmailService:
             sender=extracted_info['From'],
             subject=extracted_info['Subject'],
             body=data["email_body"],
-            history_id=data['historyId']
+            history_id=data['historyId'],
+            email_id=data['id']
         )

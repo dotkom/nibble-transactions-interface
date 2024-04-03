@@ -7,9 +7,10 @@ from flask_socketio import SocketIO
 
 from src.transaction_service import TransactionService
 from src.gmail_service import GmailService
-from src.transaction_state_service import TransactionStateService
+from state_service import StateService
 from src.pubsub_service import PubSubService
 from src.sound_service import SoundService
+from src.domain import Transaction
 
 import traceback
 
@@ -33,12 +34,9 @@ state_folder = "../state"
 if not os.path.exists(state_folder):
     os.makedirs(state_folder)
 
-transactions_file = os.path.join(filedir, f"{state_folder}/transactions.json")
-history_id_file = os.path.join(filedir, f"{state_folder}/history_id.txt")
+state_file = os.path.join(filedir, f"{state_folder}/state.json")
 
-state_service = TransactionStateService(
-    transactions_file=transactions_file, 
-    history_id_file=history_id_file)
+state_service = StateService(state_file=state_file)
 
 transaction_service = TransactionService(
     gmail_service=gmail_service,
@@ -47,7 +45,7 @@ transaction_service = TransactionService(
     max_saved_limit=10
     )
 
-def emit_update(transactions):
+def emit_update(transactions: list[Transaction]):
     transactions = [transaction.__dict__ for transaction in transactions]
     socketio.emit('update', {'payload': transactions}, namespace='/test')
 

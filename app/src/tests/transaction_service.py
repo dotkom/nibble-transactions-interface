@@ -2,12 +2,12 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 import unittest
-from src.transaction_state_service import TransactionStateService
+from state_service import StateService
 from src.domain import Transaction
 from unittest.mock import patch, MagicMock
 from src.transaction_service import TransactionService
 from src.gmail_service import GmailService
-from src.transaction_state_service import TransactionStateService
+from state_service import StateService
 import json
 
 dirname = os.path.dirname(__file__)
@@ -22,7 +22,7 @@ class TestTransactionService(unittest.TestCase):
 
         self.transactions_file = os.path.join(dirname, "test_transactions.json")
         self.history_id_file = os.path.join(dirname, "test_history_id.json")
-        self.state_service = TransactionStateService(transactions_file=self.transactions_file, history_id_file=self.history_id_file)
+        self.state_service = StateService(state_file=self.transactions_file, history_id_file=self.history_id_file)
 
         self.transaction_service = TransactionService(self.gmail_service, self.state_service)
 

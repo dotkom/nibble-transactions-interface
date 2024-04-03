@@ -10,6 +10,7 @@ class Transaction:
     transaction_description: str
     invoice_number: str
     history_id: str
+    email_id: str
 
 @dataclass
 class Email:
@@ -19,4 +20,5 @@ class Email:
     subject: str
     body: str
     history_id: str
+    email_id: str
 

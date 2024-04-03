@@ -1,0 +1,1 @@
+{"transactions": [{"order_number": "12345", "name": "Test Transaction", "email": "test@gmail.com", "amount": 100, "datetime": "2023-04-01", "transaction_description": "Test Product", "invoice_number": "12345", "history_id": "12345"}], "last_history_id": "12345", "processed_email_ids": ["12345", "67890"]}

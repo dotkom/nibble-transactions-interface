@@ -6,13 +6,13 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from pprint import pprint
 from src.domain import Transaction, Email
 from src.gmail_service import GmailService
-from src.transaction_state_service import TransactionStateService
+from src.state_service import StateService
 from src.sound_service import SoundService
 import re
 import traceback
 
 class TransactionService:
-    def __init__(self, gmail_service: GmailService, state_service: TransactionStateService, sound_service: SoundService, max_saved_limit: int = 10):
+    def __init__(self, gmail_service: GmailService, state_service: StateService, sound_service: SoundService, max_saved_limit: int = 10):
         self.gmail_service = gmail_service
         self.state_service = state_service
         self.sound_service = sound_service
@@ -61,7 +61,7 @@ class TransactionService:
         name, email_addr = name_email_match.group(1), name_email_match.group(2)
         amount = int(float(re.search(r'Sum ordre ink MVA kr\s+(\d+.\d+)', email.body).group(1)))
         product_description = re.search(r'(\d+ stk [^\=]+=\s+kr\s+\d+.\d+)', email.body).group(1)
-        return Transaction(order_number=order_number, name=name, email=email_addr, amount=amount, datetime=datetime, transaction_description=product_description, invoice_number=invoice_number, history_id=email.history_id)
+        return Transaction(order_number=order_number, name=name, email=email_addr, amount=amount, datetime=datetime, transaction_description=product_description, invoice_number=invoice_number, history_id=email.history_id, email_id=email.email_id)
 
     def fetch_detailed_emails(self, added_emails) -> list[dict]:
         emails = []
@@ -96,40 +96,14 @@ class TransactionService:
 
         return emails
 
-    def get_parsed_emails(self, unprocessed_history):
-        print("Unprocessed history", unprocessed_history)
-        if 'history' not in unprocessed_history:
-            raw_added_emails = [] # No new emails
-        else:
-            raw_added_emails = self.extract_added_emails(unprocessed_history['history'])
-
+    def get_emails_from_history(self, history):
+        raw_added_emails = self.extract_added_emails(history)
         new_emails = self.fetch_detailed_emails(raw_added_emails)
         parsed_emails = self.parse_emails(new_emails)
         
         return parsed_emails
 
-    def handle_gmail_push(self, new_history_id: str) -> list[Transaction]:
-        last_processed_history_id = self.state_service.get_last_processed_history_id()
-
-        print(f"Last processed history id: {last_processed_history_id}")
-
-        if last_processed_history_id is None:
-            return self.full_sync()
-
-        unprocessed_history = self.gmail_service.get_history(last_processed_history_id)
-
-        print("Unprocessed history", unprocessed_history)
-        parsed_emails = self.get_parsed_emails(unprocessed_history)
-        print("emails", parsed_emails)
-
-        transactions = self.extract_emails(parsed_emails)
-        updated_transactions = self.add_transactions(transactions, self.max_saved_limit)
-
-        self.state_service.set_last_processed_history_id(f"{new_history_id}")
-
-        return updated_transactions
-
-    def extract_emails(self, emails: list[Email]) -> list[Transaction]:
+    def extract_transactions_from_emails(self, emails: list[Email]) -> list[Transaction]:
         transactions = []
         for email in emails:
             try:
@@ -141,19 +115,52 @@ class TransactionService:
                 continue
         return transactions
 
+    def handle_gmail_push(self, new_history_id: str) -> list[Transaction]:
+        last_processed_history_id = self.state_service.get_last_processed_history_id()
+
+        print(f"Last processed history id: {last_processed_history_id}")
+
+        if last_processed_history_id is None:
+            return self.full_sync()
+
+        unprocessed_history = self.gmail_service.get_history(last_processed_history_id)
+        new_emails = self.get_emails_from_history(unprocessed_history)
+        transactions = self.extract_transactions_from_emails(new_emails)
+
+        updated_transactions = self.add_transactions(transactions, self.max_saved_limit)
+
+        self.state_service.set_last_processed_history_id(f"{new_history_id}")
+
+        return updated_transactions
+
+
     def full_sync(self):
         detailed_emails = self.gmail_service.initial_gmail_sync(max_results=self.max_saved_limit)
         print(f"Initial sync found {len(detailed_emails)} emails")
-        parsed_emails = list(map(lambda email: self.gmail_service.parse_mail(email), detailed_emails))
+        parsed_emails = self.parse_emails(detailed_emails)
+
+        # save to file test1.json
+        with open("test2.json", "w") as f:
+            json.dump([
+                email.__dict__ for email in parsed_emails
+            ], f, indent=4)
         print(f"Initial sync parsed {len(parsed_emails)} emails")
-        transactions = self.extract_emails(parsed_emails)
+        transactions = self.extract_transactions_from_emails(parsed_emails)
         print(f"Initial sync extracted {len(transactions)} transactions from emails")
+
+        # save to file test1.json
+        with open("test1.json", "w") as f:
+            json.dump([
+                transaction.__dict__ for transaction in transactions
+            ], f, indent=4)
 
         # clear out existing transactions
         self.state_service.set_transaction_list([])
 
         updated_transactions = self.add_transactions(transactions, self.max_saved_limit)
         print(f"Initial sync updated {len(updated_transactions)} transactions from file")
+
+        print(updated_transactions[-1])
 
         self.state_service.set_last_processed_history_id(updated_transactions[-1].history_id)
 
@@ -167,7 +174,7 @@ if __name__ == '__main__':
     transactions_file = os.path.join(dirname, "transactions.json")
     history_id_file = os.path.join(dirname, "history_id.txt")
 
-    state_service = TransactionStateService(transactions_file=transactions_file, history_id_file=history_id_file)
+    state_service = StateService(state_file=transactions_file)
 
     transaction_service = TransactionService(gmail_service, state_service, max_saved_limit=10)
 
