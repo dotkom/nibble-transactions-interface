@@ -9,6 +9,7 @@ from src.transaction_service import TransactionService
 from src.gmail_service import GmailService
 from src.transaction_state_service import TransactionStateService
 from src.pubsub_service import PubSubService
+from src.sound_service import SoundService
 
 import traceback
 
@@ -23,6 +24,7 @@ socketio = SocketIO(app)
 pubsub_service = PubSubService()
 
 gmail_service = GmailService()
+sound_service = SoundService()
 
 filedir = os.path.dirname(os.path.realpath(__file__))
 
@@ -38,7 +40,12 @@ state_service = TransactionStateService(
     transactions_file=transactions_file, 
     history_id_file=history_id_file)
 
-transaction_service = TransactionService(gmail_service, state_service)
+transaction_service = TransactionService(
+    gmail_service=gmail_service,
+    state_service=state_service,
+    sound_service=sound_service,
+    max_saved_limit=10
+    )
 
 def emit_update(transactions):
     transactions = [transaction.__dict__ for transaction in transactions]

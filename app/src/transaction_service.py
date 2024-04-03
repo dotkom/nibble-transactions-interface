@@ -6,17 +6,21 @@ from pprint import pprint
 from src.domain import Transaction, Email
 from src.gmail_service import GmailService
 from src.transaction_state_service import TransactionStateService
+from src.sound_service import SoundService
 import re
 import traceback
 
 class TransactionService:
-    def __init__(self, gmail_service: GmailService, state_service: TransactionStateService, max_saved_limit: int = 10):
+    def __init__(self, gmail_service: GmailService, state_service: TransactionStateService, sound_service: SoundService, max_saved_limit: int = 10):
         self.gmail_service = gmail_service
         self.state_service = state_service
+        self.sound_service = sound_service
         self.max_saved_limit = max_saved_limit
 
     def add_transactions(self, incoming: list[Transaction], max_saved_limit: int) -> list[Transaction]:
         transactions = self.state_service.get_transaction_list()
+
+        added_transactions = False
 
         for transaction in incoming:
             if transaction.order_number in [t.order_number for t in transactions]:
@@ -25,10 +29,14 @@ class TransactionService:
                 continue
 
             transactions.append(transaction)
+            added_transactions = True
 
         transactions = transactions[-max_saved_limit:]
 
         updated = self.state_service.set_transaction_list(transactions)
+
+        if added_transactions:
+            self.sound_service.play()
 
         return updated
 
