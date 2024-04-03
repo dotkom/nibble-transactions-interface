@@ -33,14 +33,16 @@ class GmailService:
         else:
             self.gmail = gmail_client
 
-    def get_history(self, start_id):
-        if start_id is None:
-            return self.gmail.users().history().list(userId='me', historyTypes='messageAdded', startHistoryId=None, maxResults=10).execute()
+    def get_partial_history(self, start_id):
+        history = self.gmail.users().history().list(userId='me', startHistoryId=start_id, historyTypes='messageAdded').execute()
 
+        return history
+
+    def get_history(self, start_id):
         history = self.gmail.users().history().list(userId='me', startHistoryId=start_id, historyTypes='messageAdded').execute()
         return history 
 
-    def initial_gmail_sync(self, max_results=10):
+    def initial_gmail_sync(self, max_results):
         pageToken = None
         messages_left = True
         messages = []
