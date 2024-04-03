@@ -52,6 +52,7 @@ def emit_update(transactions: list[Transaction]):
 @app.route('/pubsub/push', methods=['POST'])
 def pubsub_push():
     try:
+        print("Received pubsub push!")
         incoming_history_id = pubsub_service.get_history_id(request)
         updated = transaction_service.handle_gmail_push(incoming_history_id)
         emit_update(updated)
