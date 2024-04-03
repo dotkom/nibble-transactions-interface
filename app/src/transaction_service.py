@@ -1,4 +1,5 @@
 import sys
+import json
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -66,9 +67,18 @@ class TransactionService:
         emails = []
         for message in added_emails:
             id = message['message']['id']
-            message = self.gmail_service.get_message(id)
-            print(f"Message {id} fetched", message)
-            emails.append(message)
+            try:
+                message = self.gmail_service.get_message(id)
+                print(f"Message {id} fetched", message)
+                emails.append(message)
+            except Exception as e:
+                print(f"Failed to fetch email {id}")
+                print(traceback.format_exc())
+                # write email to file with email name
+                with open(f"email_{id}.json", "w") as f:
+                    json.dump(message, f)
+
+                continue
 
         return emails
 
@@ -117,7 +127,7 @@ class TransactionService:
         transactions = self.extract_emails(parsed_emails)
         updated_transactions = self.add_transactions(transactions, self.max_saved_limit)
 
-        self.state_service.set_last_processed_history_id(new_history_id)
+        self.state_service.set_last_processed_history_id(f"{new_history_id}")
 
         return updated_transactions
 

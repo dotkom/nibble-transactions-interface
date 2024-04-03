@@ -90,10 +90,10 @@ class GmailService:
         if "payload" not in message:
             raise ValueError("Payload not found in message")
         
-        if message['payload']['mimeType'] == "text/plain":
-            body = self.decode_email_body_text_plain(message)
-        else:
-            body = self.decode_email_body_multipart(message)
+        body = self.decode_email_body_text_plain(message)
+        # if message['payload']['mimeType'] == "text/plain":
+        # else:
+        #     body = self.decode_email_body_multipart(message)
 
         return {**message, **{"email_body": body}}
 
