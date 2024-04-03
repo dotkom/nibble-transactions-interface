@@ -48,7 +48,7 @@ class TransactionService:
                 continue
 
             for message in h['messagesAdded']:
-                if 'INBOX' in message['message']['labelIds']:
+                if 'Label_661192541137989669' in message['message']['labelIds']:
                     res.append(message)
         return res
 
@@ -103,7 +103,6 @@ class TransactionService:
             raw_added_emails = [] # No new emails
         else:
             raw_added_emails = self.extract_added_emails(unprocessed_history['history'])
-
 
         new_emails = self.fetch_detailed_emails(raw_added_emails)
         parsed_emails = list(map(lambda email: self.parse_emails(email), new_emails))
