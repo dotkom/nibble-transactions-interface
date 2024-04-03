@@ -12,6 +12,15 @@ class StateService:
         if not os.path.exists(state_file):
             with open(state_file, "w") as state_file_fp:
                 json.dump({"transactions": [], "last_history_id": None, "processed_email_ids": []}, state_file_fp)
+
+        # check if file is corrupted, if so, recreate it
+        try:
+            self.get_transaction_list()
+        except Exception as e:
+            print(f"State file {state_file} is corrupted, recreating it")
+            with open(state_file, "w") as state_file_fp:
+                json.dump({"transactions": [], "last_history_id": None, "processed_email_ids": []}, state_file_fp)
+
     
     def _get_full_file(self):
         with open(self.state_file, "r") as state_file_fp:

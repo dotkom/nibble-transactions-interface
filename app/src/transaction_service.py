@@ -127,6 +127,12 @@ class TransactionService:
         new_emails = self.get_emails_from_history(unprocessed_history)
         transactions = self.extract_transactions_from_emails(new_emails)
 
+        # save to file test1.json
+        with open("test3.json", "w") as f:
+            json.dump([
+                transaction.__dict__ for transaction in transactions
+            ], f, indent=4)
+
         updated_transactions = self.add_transactions(transactions, self.max_saved_limit)
 
         self.state_service.set_last_processed_history_id(f"{new_history_id}")
