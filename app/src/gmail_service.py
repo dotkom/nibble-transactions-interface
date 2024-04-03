@@ -101,7 +101,7 @@ class GmailService:
         return {**message, **{"email_body": body}}
 
     def parse_mail(self, data) -> Email:
-        print("parsing mail: ", data)
+        print("parsing mail")
         # Initialize an empty dictionary to hold the extracted information
         extracted_info = {}
 

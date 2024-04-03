@@ -104,7 +104,7 @@ class TransactionService:
             raw_added_emails = self.extract_added_emails(unprocessed_history['history'])
 
         new_emails = self.fetch_detailed_emails(raw_added_emails)
-        parsed_emails = list(map(lambda email: self.parse_emails(email), new_emails))
+        parsed_emails = self.parse_emails(new_emails)
         
         return parsed_emails
 
