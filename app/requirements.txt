@@ -32,7 +32,7 @@ pyparsing==3.1.2
 python-dotenv==1.0.1
 python-engineio==4.9.0
 python-socketio==5.11.2
-requests==2.31.0
+requests==2.32.0
 requests-oauthlib==2.0.0
 rsa==4.9
 simple-websocket==1.0.0
